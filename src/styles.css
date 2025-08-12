@@ -1,0 +1,39 @@
+/* Bootstrap 5.3+ ma CSS variables – można podmienić kolory */
+:root {
+    --bs-primary: #6750a4; /* nowoczesny fiolet */
+    --bs-primary-rgb: 103,80,164;
+    --bs-body-bg: #f7f7fb;
+}
+
+/* Layout */
+.app-shell {
+    min-height: 100vh;
+}
+
+.sidebar-static {
+    width: 260px;
+}
+
+.sidebar-link {
+    border-radius: .5rem;
+    padding: .5rem .75rem;
+}
+
+.sidebar-link.active,
+.sidebar-link:hover {
+    background-color: rgba(var(--bs-primary-rgb), .08);
+    color: var(--bs-primary);
+}
+
+.navbar-brand span {
+    font-weight: 600;
+}
+
+/* Karty metryk na dashboardzie */
+.metric-card .metric-value {
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    font-weight: 700;
+}
+.metric-card .metric-label {
+    color: #6c757d;
+}
