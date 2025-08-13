@@ -14,20 +14,17 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
     const POPOVER_WIDTH = col.filter?.popupWidth || 280;
     const GAP = 6;
 
-    // state: checkboxy
     const [values, setValues] = React.useState(col.filter?.values || []);
     const [valuesLoading, setValuesLoading] = React.useState(false);
     const [selected, setSelected] = React.useState(
         Array.isArray(value?.in) ? new Set(value.in) : new Set()
     );
 
-    // state: warunki
     const [op, setOp] = React.useState(value?.op || defaultOp(type));
     const [val1, setVal1] = React.useState(getInitialVal1(value));
     const [val2, setVal2] = React.useState(getInitialVal2(value));
     const isRange = (op) => op === "between" || type === "dateRange" || type === "numberRange";
 
-    // pozycjonowanie
     const popRef = React.useRef(null);
     const [style, setStyle] = React.useState({top: 0, left: 0, transformOrigin: "top"});
 
@@ -37,7 +34,6 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
         const handle = () => position();
         const anchor = anchorRef?.current;
 
-        // nasłuchy
         window.addEventListener("resize", handle, {passive: true});
         window.addEventListener("scroll", handle, {passive: true});
         const scrollers = getScrollParents(anchor);
@@ -56,20 +52,17 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
             const pop = popRef.current;
             if (!btn || !pop) return;
 
-            // domyślna pozycja: dół-prawa krawędź przycisku
             const br = btn.getBoundingClientRect();
             const ph = pop.offsetHeight || 360;
             const pw = POPOVER_WIDTH;
 
             let top = br.bottom + GAP;
-            let left = br.right - pw; // align end
+            let left = br.right - pw;
 
-            // clamp do viewportu
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             left = clamp(left, 8, vw - pw - 8);
 
-            // flip w pionie, jeśli nie mieści się na dole
             if (top + ph + 8 > vh && br.top - GAP - ph > 8) {
                 top = br.top - GAP - ph;
                 setStyle({top, left, transformOrigin: "bottom"});
@@ -79,7 +72,6 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
         }
     }, [anchorRef, POPOVER_WIDTH]);
 
-    // lazy fetch unikalnych wartości
     React.useEffect(() => {
         let active = true;
         const fetcher = col.filter?.fetchValues;
@@ -99,7 +91,6 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
         };
     }, [col.filter]);
 
-    // zamykanie: klik poza + Esc
     React.useEffect(() => {
         function onDocMouseDown(e) {
             const pop = popRef.current;
@@ -122,7 +113,6 @@ export default function FilterPopup({col, value, onApply, onClear, onClose, anch
         };
     }, [onClose, anchorRef]);
 
-    // select-all checkbox needs indeterminate via ref
     const allRef = React.useRef(null);
     React.useEffect(() => {
         if (!allRef.current) return;
@@ -264,7 +254,7 @@ function clamp(n, min, max) {
 function defaultOp(type) {
     if (type === "number" || type === "date") return "eq";
     if (type === "numberRange" || type === "dateRange") return "between";
-    return "contains"; // text/select
+    return "contains";
 }
 
 function operatorsForType(type) {
@@ -281,7 +271,6 @@ function operatorsForType(type) {
     if (type === "numberRange" || type === "dateRange") {
         return [{value: "between", label: "Pomiędzy"}];
     }
-    // text/select
     return [
         {value: "contains", label: "Zawierające"},
         {value: "eq", label: "Równe"},
@@ -331,7 +320,6 @@ function getInitialVal2(value) {
     return "";
 }
 
-// scroll parents (żeby repozycjonować przy przewijaniu kontenerów)
 function getScrollParents(el) {
     const out = [];
     let node = el?.parentElement;
@@ -341,6 +329,6 @@ function getScrollParents(el) {
         if (/(auto|scroll|overlay)/.test(overflow)) out.push(node);
         node = node.parentElement;
     }
-    out.push(document); // backup
+    out.push(document);
     return out;
 }

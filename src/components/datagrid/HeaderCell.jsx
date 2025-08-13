@@ -4,8 +4,8 @@ import FilterPopup from "./FilterPopup.jsx";
 export default function HeaderCell({
                                        col,
                                        width,
-                                       sorted,           // 'asc' | 'desc' | null
-                                       isFiltered,       // bool
+                                       sorted,
+                                       isFiltered,
                                        onSort,
                                        onResizeStart,
                                        dragKey,

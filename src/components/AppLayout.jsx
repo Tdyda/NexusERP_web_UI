@@ -6,7 +6,6 @@ import { useAuth } from "../auth/useAuth.js";
 export default function AppLayout() {
     const { user, logout } = useAuth();
 
-    // zamyka offcanvas po kliknięciu linku
     function closeOffcanvas() {
         const offcanvasEl = document.getElementById("appSidebar");
         if (!offcanvasEl) return;
