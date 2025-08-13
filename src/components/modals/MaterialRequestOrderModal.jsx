@@ -10,18 +10,17 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
     const [comment, setComment] = React.useState("");
     const [submitting, setSubmitting] = React.useState(false);
 
-    // Fetch detail
     React.useEffect(() => {
         let active = true;
         const ctrl = new AbortController();
         setLoading(true);
         setError("");
 
-        api.get(`/material-request/${encodeURIComponent(batchId)}`, { signal: ctrl.signal })
+        api.get(`material-requests/${encodeURIComponent(batchId)}`, { signal: ctrl.signal })
             .then(r => {
                 if (!active) return;
                 setDetail(r.data);
-                setSelected(new Set()); // reset wyboru
+                setSelected(new Set());
             })
             .catch(e => {
                 if (!active) return;
@@ -32,7 +31,6 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
         return () => { active = false; ctrl.abort(); };
     }, [batchId]);
 
-    // Esc zamyka
     React.useEffect(() => {
         function onKey(e) { if (e.key === "Escape") onClose?.(); }
         document.addEventListener("keydown", onKey);

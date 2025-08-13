@@ -30,19 +30,19 @@ export default function DataGrid({
                                      initialPageSize = 15,
                                      rowKey = (row, idx) => row.id ?? idx,
                                      onRowClick,
+                                     onRowDoubleClick,
+                                     onRowContextMenu,
                                      className = "",
                                      toolbarRight,
                                  }) {
     if (!id) throw new Error("DataGrid: prop `id` jest wymagany.");
 
-    // ── Persist układu
     const [layout, setLayout] = useLocalStorage(`dg:${id}:layout`, {
         order: columns.map(c => c.key),
         widths: {},
         hidden: {},
     });
 
-    // Kolejność i widoczność
     const orderedColumns = React.useMemo(() => {
         const byKey = new Map(columns.map(c => [c.key, c]));
         const inOrder = layout.order.map(k => byKey.get(k)).filter(Boolean);
@@ -50,24 +50,20 @@ export default function DataGrid({
         return [...inOrder, ...missing].filter(c => !layout.hidden[c.key]);
     }, [columns, layout.order, layout.hidden]);
 
-    // ── Filtry, sort, paging
     const [filters, setFilters] = React.useState(() =>
         Object.fromEntries(columns.map(c => [c.key, null]))
     );
-    const [sort, setSort] = React.useState(null); // {key, dir}
+    const [sort, setSort] = React.useState(null);
     const [page, setPage] = React.useState(1);
     const [pageSize, setPageSize] = React.useState(initialPageSize);
 
-    // ── Dane
     const [rows, setRows] = React.useState([]);
     const [total, setTotal] = React.useState(0);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState("");
 
-    // ── Debounce filtrów
     const debouncedFilters = useDebounced(filters, 300);
 
-    // ── Pobieranie
     React.useEffect(() => {
         let active = true;
         const ctrl = new AbortController();
@@ -90,7 +86,6 @@ export default function DataGrid({
         return () => { active = false; ctrl.abort(); };
     }, [page, pageSize, sort, debouncedFilters, fetchData]);
 
-    // ── Sort toggle
     function toggleSort(col) {
         if (!col.sortable) return;
         setPage(1);
@@ -100,8 +95,6 @@ export default function DataGrid({
             return null;
         });
     }
-
-    // ── Ustawienie filtra dla kolumny
     function applyColumnFilter(colKey, value) {
         setPage(1);
         setFilters((f) => ({ ...f, [colKey]: normalizeEmpty(value) }));
@@ -115,7 +108,6 @@ export default function DataGrid({
         [filters]
     );
 
-    // ── Resize / DnD
     const tableRef = React.useRef(null);
     const [isResizingKey, setIsResizingKey] = React.useState(null);
     const [dragKey, setDragKey] = React.useState(null);
@@ -141,15 +133,8 @@ export default function DataGrid({
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
     }
-
-    function onHeaderDragStart(e, key) {
-        setDragKey(key);
-        e.dataTransfer.effectAllowed = "move";
-    }
-    function onHeaderDragOver(e, overKey) {
-        if (!dragKey || dragKey === overKey) return;
-        e.preventDefault();
-    }
+    function onHeaderDragStart(e, key) { setDragKey(key); e.dataTransfer.effectAllowed = "move"; }
+    function onHeaderDragOver(e, overKey) { if (!dragKey || dragKey === overKey) return; e.preventDefault(); }
     function onHeaderDrop(e, dropKey) {
         e.preventDefault();
         if (!dragKey || dragKey === dropKey) return;
@@ -206,7 +191,6 @@ export default function DataGrid({
                                     value={filters[col.key]}
                                     onApply={(v) => applyColumnFilter(col.key, v)}
                                     onClear={() => applyColumnFilter(col.key, null)}
-                                    hidden={!!layout.hidden[col.key]}
                                 />
                             );
                         })}
@@ -216,16 +200,17 @@ export default function DataGrid({
                     <tbody>
                     {rows.length === 0 && !loading && (
                         <tr>
-                            <td colSpan={orderedColumns.length} className="dg-empty">
-                                Brak danych do wyświetlenia.
-                            </td>
+                            <td colSpan={orderedColumns.length} className="dg-empty">Brak danych do wyświetlenia.</td>
                         </tr>
                     )}
+
                     {rows.map((row, ri) => (
                         <tr
                             key={rowKey(row, ri)}
                             onClick={onRowClick ? () => onRowClick(row) : undefined}
-                            style={{ cursor: onRowClick ? "pointer" : "default" }}
+                            onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
+                            onContextMenu={onRowContextMenu ? (e) => { e.preventDefault(); onRowContextMenu(e, row); } : undefined} // ⬅️ NOWE
+                            style={{ cursor: (onRowClick || onRowDoubleClick || onRowContextMenu) ? "pointer" : "default" }}
                         >
                             {orderedColumns.map((col) => (
                                 <td key={col.key} style={{ width: layout.widths[col.key] || col.width || undefined }}>
@@ -238,7 +223,6 @@ export default function DataGrid({
                 </table>
             </div>
 
-            {/* Footer / paginacja */}
             <div className="dg-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
                 <div className="d-flex align-items-center gap-2">
                     <span className="text-secondary">Strona</span>
@@ -275,10 +259,15 @@ export default function DataGrid({
 }
 
 function defaultRender(col, row) {
-    try {
-        if (col.accessor) return toDisplay(col.accessor(row));
-        return toDisplay(row?.[col.key]);
-    } catch { return ""; }
+    if (typeof col.accessor === "function") {
+        try {
+            return toDisplay(col.accessor(row));
+        } catch (e) {
+            if (import.meta.env.DEV) console.debug("DataGrid accessor error:", e);
+            return toDisplay(row?.[col.key]);
+        }
+    }
+    return toDisplay(row?.[col.key]);
 }
 function toDisplay(v) {
     if (v == null) return "";

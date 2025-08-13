@@ -1,9 +1,10 @@
 import React from "react";
 import DataGrid from "../components/datagrid/DataGrid.jsx";
 import { api } from "../api/axios.js";
+import MaterialRequestOrderModal from "../components/modals/MaterialRequestOrderModal.jsx";
 
 // Zmień, jeśli masz inny path kontrolera:
-const BASE = "/api/material-requests";
+const BASE = "/material-requests";
 
 // Mapowanie statusów → label + bootstrap badge
 function statusBadge(status) {
@@ -87,6 +88,13 @@ export default function MaterialRequests() {
                 render: (r) => formatDate(r.releaseDate),
             },
             {
+                key: "client",
+                header: "Klient",
+                width: 160,
+                sortable: true,
+                filter: { type: "text", placeholder: "Szukaj klienta…" },
+            },
+            {
                 key: "itemsCount",
                 header: "Pozycje",
                 width: 110,
@@ -117,7 +125,6 @@ export default function MaterialRequests() {
         []
     );
 
-    // Adapter do API: Spring Pageable jest 0-based → page-1
     const fetchData = React.useCallback(
         async ({ page, pageSize, sort, filters, signal }) => {
             const params = {
@@ -126,12 +133,11 @@ export default function MaterialRequests() {
                 ...toQueryFilters(filters),
             };
             if (sort?.key && sort?.dir) {
-                params.sort = `${sort.key},${sort.dir}`; // np. sort=finalProductName,asc
+                params.sort = `${sort.key},${sort.dir}`;
             }
 
             const res = await api.get(BASE, { params, signal });
 
-            // Spring zwraca listę (bez total) → sprawdzamy nagłówek X-Total-Count (jeśli dodasz na backendzie)
             const items = Array.isArray(res.data) ? res.data : (res.data?.items ?? []);
             const totalHeader = res.headers?.["x-total-count"];
             const total = totalHeader ? parseInt(totalHeader, 10) || items.length : items.length;
@@ -166,7 +172,7 @@ export default function MaterialRequests() {
                 columns={columns}
                 fetchData={fetchData}
                 initialPageSize={15}
-                onRowDoubleClick={openOrderModal}   // ⬅️ DWUKLIK
+                onRowDoubleClick={openOrderModal}
             />
 
             {orderBatchId && (
@@ -174,7 +180,7 @@ export default function MaterialRequests() {
                     batchId={orderBatchId}
                     onClose={() => setOrderBatchId(null)}
                     onSubmitted={() => {
-                        // opcjonalnie: możesz przeładować grid (np. zmienić key) lub zostawić jak jest
+                        // implementacja przeładowania grida
                         // setReloadKey(k => k + 1);
                     }}
                 />
@@ -203,18 +209,15 @@ function toQueryFilters(filters) {
     for (const [k, v] of Object.entries(filters || {})) {
         if (v == null || v === "") continue;
 
-        // --- IN (checkboxy) -> op=IN + wiele [value]
         if (typeof v === "object" && "in" in v && Array.isArray(v.in) && v.in.length) {
             out[`f.${k}`] = { op: "IN", value: v.in };
             continue;
         }
 
-        // --- BETWEEN (zakresy dat/liczb) -> [from] & [to]
         if (typeof v === "object" && (v.op === "between" || ("from" in v || "to" in v))) {
             const hasFrom = !!v.from;
             const hasTo = !!v.to;
 
-            // Jeśli tylko jedna granica, zmapuj na GTE/LTE
             if (hasFrom && !hasTo) {
                 const fromIso = isDateInput(v.from) ? isoStartOfDay(v.from) : v.from;
                 out[`f.${k}`] = { op: OP.gte, value: fromIso };
@@ -227,19 +230,16 @@ function toQueryFilters(filters) {
             }
             if (!hasFrom && !hasTo) continue;
 
-            // Obydwie granice -> BETWEEN [from]/[to]
             const fromIso = isDateInput(v.from) ? isoStartOfDay(v.from) : v.from;
             const toIso   = isDateInput(v.to)   ? isoEndOfDay(v.to)   : v.to;
             out[`f.${k}`] = { op: OP.between, from: fromIso, to: toIso };
             continue;
         }
 
-        // --- Pozostałe operatory (EQ/GT/GTE/LT/LTE/CONTAINS)
         if (typeof v === "object" && "op" in v && "value" in v) {
             const op = OP[v.op];
             if (!op || v.value == null || v.value === "") continue;
 
-            // Daty typu YYYY-MM-DD → na Instant (dla EQ zamień na BETWEEN całego dnia)
             if (isDateInput(v.value)) {
                 if (op === OP.eq) {
                     out[`f.${k}`] = { op: OP.between, from: isoStartOfDay(v.value), to: isoEndOfDay(v.value) };
@@ -252,7 +252,6 @@ function toQueryFilters(filters) {
             continue;
         }
 
-        // --- Skrót: zwykła wartość -> EQ
         out[`f.${k}`] = { op: OP.eq, value: isDateInput(v) ? isoStartOfDay(v) : v };
     }
 
@@ -264,8 +263,3 @@ function isDateInput(val) {
 }
 function isoStartOfDay(yyyyMmDd) { return `${yyyyMmDd}T00:00:00Z`; }
 function isoEndOfDay(yyyyMmDd)   { return `${yyyyMmDd}T23:59:59.999Z`; }
-
-function exportCsvHint() {
-    // Placeholder pod eksport – możemy dorobić generowanie CSV z aktualnymi filtrami
-    alert("Eksport CSV: do implementacji (wyślij, a przygotuję gotowe).");
-}
