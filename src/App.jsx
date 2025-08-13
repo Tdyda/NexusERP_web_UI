@@ -9,6 +9,7 @@ import { useAuth } from "./auth/useAuth.js";
 import { setAuthHelpers } from "./api/authBridge.js";
 import AppLayout from "./components/AppLayout.jsx";
 import OrdersMex from "./pages/OrdersMex.jsx";
+import MyOrders from "./pages/MyOrders.jsx";
 
 export default function App() {
     const { logout, setTokens, accessToken, refreshToken } = useAuth();
@@ -32,6 +33,7 @@ export default function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/material-requests" element={<MaterialRequests />} />
                     <Route path="/orders-mex" element={<OrdersMex />} />
+                    <Route path="/my-orders" element={<MyOrders />} />
                 </Route>
             </Route>
 

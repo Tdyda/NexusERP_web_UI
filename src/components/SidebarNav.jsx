@@ -33,6 +33,15 @@ export default function SidebarNav({ onNavigate }) {
                         <i className="bi bi-speedometer2"></i> Zamówienia mecalux
                     </NavLink>
                 </li>
+                <li>
+                    <NavLink
+                        to="/my-orders"
+                        className={({ isActive }) => `d-flex align-items-center gap-2 sidebar-link ${isActive ? "active" : ""}`}
+                        onClick={onNavigate}
+                    >
+                        <i className="bi bi-speedometer2"></i> Moje zamówienia
+                    </NavLink>
+                </li>
                 {/* Przykładowe przyszłe sekcje (docelowo podmień na realne trasy) */}
 
                 {/*<li>*/}
