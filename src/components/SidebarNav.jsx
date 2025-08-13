@@ -24,27 +24,37 @@ export default function SidebarNav({ onNavigate }) {
                         <i className="bi bi-speedometer2"></i> MaterialRequests
                     </NavLink>
                 </li>
+                <li>
+                    <NavLink
+                        to="/orders-mex"
+                        className={({ isActive }) => `d-flex align-items-center gap-2 sidebar-link ${isActive ? "active" : ""}`}
+                        onClick={onNavigate}
+                    >
+                        <i className="bi bi-speedometer2"></i> Zamówienia mecalux
+                    </NavLink>
+                </li>
                 {/* Przykładowe przyszłe sekcje (docelowo podmień na realne trasy) */}
-                <li>
-                    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">
-                        <i className="bi bi-receipt"></i> Faktury
-                    </a>
-                </li>
-                <li>
-                    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">
-                        <i className="bi bi-people"></i> Klienci
-                    </a>
-                </li>
-                <li>
-                    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">
-                        <i className="bi bi-box-seam"></i> Produkty
-                    </a>
-                </li>
-                <li>
-                    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">
-                        <i className="bi bi-gear"></i> Ustawienia
-                    </a>
-                </li>
+
+                {/*<li>*/}
+                {/*    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">*/}
+                {/*        <i className="bi bi-receipt"></i> Faktury*/}
+                {/*    </a>*/}
+                {/*</li>*/}
+                {/*<li>*/}
+                {/*    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">*/}
+                {/*        <i className="bi bi-people"></i> Klienci*/}
+                {/*    </a>*/}
+                {/*</li>*/}
+                {/*<li>*/}
+                {/*    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">*/}
+                {/*        <i className="bi bi-box-seam"></i> Produkty*/}
+                {/*    </a>*/}
+                {/*</li>*/}
+                {/*<li>*/}
+                {/*    <a className="d-flex align-items-center gap-2 sidebar-link" href="#">*/}
+                {/*        <i className="bi bi-gear"></i> Ustawienia*/}
+                {/*    </a>*/}
+                {/*</li>*/}
             </ul>
         </nav>
     );
