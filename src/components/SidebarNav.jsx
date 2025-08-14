@@ -12,8 +12,8 @@ export default function SidebarNav({ onNavigate }) {
     const NAV_ITEMS = React.useMemo(
         () => [
             { to: "/dashboard", label: "Dashboard", icon: "bi-speedometer2" },
-            { to: "/material-requests", label: "MaterialRequests", icon: "bi-box", roles: ["ROLE_ORDER_REQUESTS", "ROLE_ADMIN"] },
-            { to: "/orders-mex", label: "Zamówienia mecalux", icon: "bi-truck", roles: ["ROLE_ORDERS_MEX", "ROLE_ADMIN"] },
+            { to: "/material-requests", label: "Zamówienia - kompletacja", icon: "bi-box", roles: ["ROLE_ORDER_REQUESTS", "ROLE_ADMIN"] },
+            { to: "/orders-mex", label: "Zamówienia - mecalux", icon: "bi-truck", roles: ["ROLE_ORDERS_MEX", "ROLE_ADMIN"] },
             { to: "/my-orders", label: "Moje zamówienia", icon: "bi-list-check", roles: ["ROLE_ORDER_REQUESTS", "ROLE_ADMIN"] },
         ],
         []
