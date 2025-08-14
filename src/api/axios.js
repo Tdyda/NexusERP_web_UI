@@ -2,26 +2,21 @@ import axios from "axios";
 import { getAuthHelpers } from "./authBridge.js";
 import qs from "qs";
 
-// Tworzymy instancję
 export const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
-    withCredentials: true, // jeśli backend używa ciasteczek (CSRF itp.)
+    withCredentials: true,
     timeout: 15000,
     paramsSerializer: {
         serialize: (params) =>
             qs.stringify(params, {
-                // koduj KLUCZE i wartości
                 encode: true,
                 encodeValuesOnly: false,
-                // tablice jako powtarzające się paramy: ?a=1&a=2
                 arrayFormat: "repeat",
             }),
     },
 });
 
-// Lazy getter, aby uniknąć cyklicznych importów
 function getAuth() {
-    // { getAccessToken, getRefreshToken, setTokens, logout }
     return getAuthHelpers();
 }
 
@@ -58,7 +53,7 @@ async function refreshTokenCall(refreshToken) {
         { refreshToken },
         { withCredentials: true }
     );
-    return resp.data; // { accessToken, refreshToken?, user? }
+    return resp.data;
 }
 
 api.interceptors.response.use(

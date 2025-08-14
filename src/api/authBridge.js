@@ -1,6 +1,3 @@
-// Ten moduł przechowuje referencje do funkcji z kontekstu Auth
-// Inicjalizujemy go w App.jsx (po utworzeniu providera)
-
 let helpers = {
     getAccessToken: null,
     getRefreshToken: null,
