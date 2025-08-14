@@ -2,11 +2,11 @@ import React from "react";
 import DataGrid from "../components/datagrid/DataGrid.jsx";
 import { api } from "../api/axios.js";
 import MaterialRequestOrderModal from "../components/modals/MaterialRequestOrderModal.jsx";
+import MaterialRequestBulkOrderModal from "../components/modals/MaterialRequestBulkOrderModal.jsx";
 
-// Zmień, jeśli masz inny path kontrolera:
+
 const BASE = "/material-requests";
 
-// Mapowanie statusów → label + bootstrap badge
 function statusBadge(status) {
     const s = (status || "").toLowerCase();
     let cls = "badge text-bg-secondary";
@@ -114,8 +114,11 @@ export default function MaterialRequests() {
                 filter: { type: "text" },
                 render: (r) => (
                     <div className="d-flex gap-1 justify-content-end">
-                        <button className="btn btn-sm btn-light" title="Szczegóły"
-                                onClick={() => console.log("MaterialRequest details", r)}>
+                        <button
+                            className="btn btn-sm btn-light"
+                            title="Szczegóły"
+                            onClick={() => console.log("MaterialRequest details", r)}
+                        >
                             <i className="bi bi-eye" />
                         </button>
                     </div>
@@ -124,6 +127,8 @@ export default function MaterialRequests() {
         ],
         []
     );
+
+    const [refreshTick, setRefreshTick] = React.useState(0);
 
     const fetchData = React.useCallback(
         async ({ page, pageSize, sort, filters, signal }) => {
@@ -138,27 +143,64 @@ export default function MaterialRequests() {
 
             const res = await api.get(BASE, { params, signal });
 
-            const items = Array.isArray(res.data) ? res.data : (res.data?.items ?? []);
+            const items = Array.isArray(res.data) ? res.data : res.data?.items ?? [];
             const totalHeader = res.headers?.["x-total-count"];
             const total = totalHeader ? parseInt(totalHeader, 10) || items.length : items.length;
 
             return { rows: items, total };
         },
-        []
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [refreshTick]
     );
 
+    // ——— Single-order modal (dblclick) ———
     const [orderBatchId, setOrderBatchId] = React.useState(null);
-    const openOrderModal = (row) => {
+    const openOrderModal = React.useCallback((row) => {
         if (!row?.batchId) return;
         setOrderBatchId(row.batchId);
-    };
+    }, []);
+
+    // ——— Multi-select + bulk order ———
+    const [selectedRows, setSelectedRows] = React.useState([]);
+    const handleSelectionChange = React.useCallback((keys, rows) => {
+        setSelectedRows(rows);
+    }, []);
+    const rowKeyFn = React.useCallback((row) => row.batchId, []);
+    const [bulkOpen, setBulkOpen] = React.useState(false);
+
+    const toolbarRight = React.useMemo(
+        () => (
+            <div className="d-flex align-items-center gap-2">
+                <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => setRefreshTick((t) => t + 1)}
+                    title="Odśwież widok"
+                >
+                    <i className="bi bi-arrow-clockwise me-1"></i> Odśwież
+                </button>
+
+                <button
+                    className="btn btn-sm btn-primary"
+                    disabled={selectedRows.length === 0}
+                    onClick={() => setBulkOpen(true)}
+                    title={selectedRows.length ? `Zamów dla ${selectedRows.length} MR` : "Zaznacz MR, aby zamówić"}
+                >
+                    <i className="bi bi-bag-plus me-1" />
+                    Zamów {selectedRows.length > 0 ? `(${selectedRows.length})` : ""}
+                </button>
+            </div>
+        ),
+        [selectedRows.length]
+    );
 
     return (
         <div className="container-fluid px-0">
             <div className="d-flex align-items-center justify-content-between mb-3">
                 <h1 className="h4 mb-0">Zapotrzebowania materiałowe</h1>
                 <div className="d-flex gap-2">
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => window.location.reload()}>
+                    <button className="btn btn-sm btn-outline-secondary"
+                            onClick={() => setRefreshTick((t) => t + 1)}
+                    >
                         <i className="bi bi-arrow-clockwise me-1"></i> Odśwież
                     </button>
                     <button className="btn btn-sm btn-primary" onClick={() => console.log("create new MR")}>
@@ -173,6 +215,11 @@ export default function MaterialRequests() {
                 fetchData={fetchData}
                 initialPageSize={15}
                 onRowDoubleClick={openOrderModal}
+                selectable
+                rowKey={rowKeyFn}
+                onSelectionChange={handleSelectionChange}
+                rowClassName={(row, isSelected) => (isSelected ? "dg-row-selected" : "")}
+                toolbarRight={toolbarRight}
             />
 
             {orderBatchId && (
@@ -180,8 +227,20 @@ export default function MaterialRequests() {
                     batchId={orderBatchId}
                     onClose={() => setOrderBatchId(null)}
                     onSubmitted={() => {
-                        // implementacja przeładowania grida
-                        // setReloadKey(k => k + 1);
+                        setOrderBatchId(null);
+                        setRefreshTick((t) => t + 1);
+                    }}
+                />
+            )}
+
+            {bulkOpen && (
+                <MaterialRequestBulkOrderModal
+                    batchIds={selectedRows.map((r) => r.batchId)}
+                    onClose={() => setBulkOpen(false)}
+                    onSubmitted={() => {
+                        setBulkOpen(false);
+                        setSelectedRows([]);
+                        setRefreshTick((t) => t + 1);
                     }}
                 />
             )}
@@ -190,7 +249,6 @@ export default function MaterialRequests() {
 }
 
 /* ——— helpers ——— */
-
 function formatDate(iso) {
     if (!iso) return "—";
     try {
@@ -231,7 +289,7 @@ function toQueryFilters(filters) {
             if (!hasFrom && !hasTo) continue;
 
             const fromIso = isDateInput(v.from) ? isoStartOfDay(v.from) : v.from;
-            const toIso   = isDateInput(v.to)   ? isoEndOfDay(v.to)   : v.to;
+            const toIso = isDateInput(v.to) ? isoEndOfDay(v.to) : v.to;
             out[`f.${k}`] = { op: OP.between, from: fromIso, to: toIso };
             continue;
         }
@@ -244,7 +302,10 @@ function toQueryFilters(filters) {
                 if (op === OP.eq) {
                     out[`f.${k}`] = { op: OP.between, from: isoStartOfDay(v.value), to: isoEndOfDay(v.value) };
                 } else {
-                    out[`f.${k}`] = { op, value: op === OP.lte || op === OP.lt ? isoEndOfDay(v.value) : isoStartOfDay(v.value) };
+                    out[`f.${k}`] = {
+                        op,
+                        value: op === OP.lte || op === OP.lt ? isoEndOfDay(v.value) : isoStartOfDay(v.value),
+                    };
                 }
             } else {
                 out[`f.${k}`] = { op, value: v.value };
@@ -261,5 +322,9 @@ function toQueryFilters(filters) {
 function isDateInput(val) {
     return typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val);
 }
-function isoStartOfDay(yyyyMmDd) { return `${yyyyMmDd}T00:00:00Z`; }
-function isoEndOfDay(yyyyMmDd)   { return `${yyyyMmDd}T23:59:59.999Z`; }
+function isoStartOfDay(yyyyMmDd) {
+    return `${yyyyMmDd}T00:00:00Z`;
+}
+function isoEndOfDay(yyyyMmDd) {
+    return `${yyyyMmDd}T23:59:59.999Z`;
+}
