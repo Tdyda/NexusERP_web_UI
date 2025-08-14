@@ -2,11 +2,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Wstrzykujemy tylko podczas builda (Vite czyta VITE_*)
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# Zainstaluj zależności i zbuduj
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
@@ -16,11 +14,15 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# Vite jako serwer podglądu prod-builda
+# CLI Vite do serwowania dist
 RUN npm i -g vite@latest
 
-# Skopiuj zbudowane pliki
+# skopiuj build
 COPY --from=build /app/dist ./dist
 
+# 👇 wygeneruj minimalny config preview (BRAK importów!)
+RUN printf "export default { preview: { allowedHosts: ['nexus.tablefoods.com'], host: '0.0.0.0', port: 4173 } };\n" > /app/vite.preview.config.js
+
 EXPOSE 4173
-CMD ["vite", "preview", "--host", "0.0.0.0", "--strictPort"]
+# 👇 kluczowe: wskaż poprawny config
+CMD ["vite", "preview", "-c", "/app/vite.preview.config.js", "--strictPort"]
