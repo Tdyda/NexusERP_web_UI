@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import NotAuthorized from "./pages/NotAuthorized.jsx";
 import MaterialRequests from "./pages/MaterialRequests.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import { useAuth } from "./auth/useAuth.js";
@@ -25,18 +26,30 @@ export default function App() {
 
     return (
         <Routes>
+            {/* Public */}
             <Route path="/login" element={<Login />} />
+            <Route path="/403" element={<NotAuthorized />} />
 
-            <Route element={<ProtectedRoute roles={[]}/>}>
+            {/* Wymagane logowanie (brak wymogu ról) */}
+            <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/material-requests" element={<MaterialRequests />} />
-                    <Route path="/orders-mex" element={<OrdersMex />} />
-                    <Route path="/my-orders" element={<MyOrders />} />
+
+                    {/* ⬇️ Wymaga przynajmniej jednej z ról: SK LUB admin */}
+                    <Route element={<ProtectedRoute roles={['ROLE_ORDER_REQUESTS','ROLE_ADMIN']} />}>
+                        <Route path="/material-requests" element={<MaterialRequests />} />
+                        <Route path="/my-orders" element={<MyOrders />} />
+                    </Route>
+
+                    {/* ⬇️ Wymaga przynajmniej jednej z ról: ORDERS_MEX LUB admin */}
+                    <Route element={<ProtectedRoute roles={['ROLE_ORDERS_MEX','ROLE_ADMIN']} />}>
+                        <Route path="/orders-mex" element={<OrdersMex />} />
+                    </Route>
                 </Route>
             </Route>
 
+            {/* Fallback */}
             <Route path="*" element={<NotFound />} />
         </Routes>
     );
