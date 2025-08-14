@@ -223,3 +223,11 @@
     width: 420px;
     max-width: min(90vw, 460px);
 }
+
+.dg-row-selected {
+    background: var(--bs-primary-bg-subtle, rgba(13,110,253,.08)) !important;
+}
+.dg-row-selected td {
+    background: inherit !important;
+}
+

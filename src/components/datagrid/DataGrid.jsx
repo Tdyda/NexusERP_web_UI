@@ -32,6 +32,9 @@ export default function DataGrid({
                                      onRowClick,
                                      onRowDoubleClick,
                                      onRowContextMenu,
+                                     selectable = false,
+                                     onSelectionChange,
+                                     rowClassName,
                                      className = "",
                                      toolbarRight,
                                  }) {
@@ -107,6 +110,61 @@ export default function DataGrid({
         () => Object.values(filters).some(v => v != null && !(typeof v === "string" && v.trim() === "")),
         [filters]
     );
+
+    const [selectedKeys, setSelectedKeys] = React.useState(() => new Set());
+    const draggingRef = React.useRef({ active: false, addMode: true });
+
+    React.useEffect(() => {
+        onSelectionChange?.(selectedKeys, rows.filter((r, i) => selectedKeys.has(String(rowKey(r, i)))));
+    }, [selectedKeys, rows, onSelectionChange, rowKey]);
+
+    React.useEffect(() => {
+        function endDrag() { draggingRef.current.active = false; }
+        window.addEventListener("mouseup", endDrag);
+        return () => window.removeEventListener("mouseup", endDrag);
+    }, []);
+
+    function rowKeyStr(r, i) { return String(rowKey(r, i)); }
+
+    function startDrag(e, r, i) {
+        if (!selectable) return;
+        const key = rowKeyStr(r, i);
+        const has = selectedKeys.has(key);
+        const addMode = e.ctrlKey ? !has : !has;
+        draggingRef.current = { active: true, addMode };
+
+        setSelectedKeys(prev => {
+            const next = new Set(prev);
+            if (!e.ctrlKey && !e.metaKey) {
+                if (addMode) next.clear();
+            }
+            if (addMode) next.add(key); else next.delete(key);
+            return next;
+        });
+    }
+
+    function enterDrag(e, r, i) {
+        if (!selectable) return;
+        if (!draggingRef.current.active) return;
+        const key = rowKeyStr(r, i);
+        setSelectedKeys(prev => {
+            const next = new Set(prev);
+            if (draggingRef.current.addMode) next.add(key); else next.delete(key);
+            return next;
+        });
+    }
+
+    function toggleCtrl(e, r, i) {
+        if (!selectable) return;
+        if (!(e.ctrlKey || e.metaKey)) return;
+        const key = rowKeyStr(r, i);
+        setSelectedKeys(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    }
+
 
     const tableRef = React.useRef(null);
     const [isResizingKey, setIsResizingKey] = React.useState(null);
@@ -204,21 +262,29 @@ export default function DataGrid({
                         </tr>
                     )}
 
-                    {rows.map((row, ri) => (
-                        <tr
-                            key={rowKey(row, ri)}
-                            onClick={onRowClick ? () => onRowClick(row) : undefined}
-                            onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
-                            onContextMenu={onRowContextMenu ? (e) => { e.preventDefault(); onRowContextMenu(e, row); } : undefined} // ⬅️ NOWE
-                            style={{ cursor: (onRowClick || onRowDoubleClick || onRowContextMenu) ? "pointer" : "default" }}
-                        >
-                            {orderedColumns.map((col) => (
-                                <td key={col.key} style={{ width: layout.widths[col.key] || col.width || undefined }}>
-                                    {col.render ? col.render(row) : defaultRender(col, row)}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
+                    {rows.map((row, ri) => {
+                        const key = rowKeyStr(row, ri);
+                        const selected = selectable && selectedKeys.has(key);
+                        const extraClass = rowClassName ? rowClassName(row, selected) : (selected ? "dg-row-selected" : "");
+                        return (
+                            <tr
+                                key={key}
+                                className={extraClass}
+                                onMouseDown={(e) => startDrag(e, row, ri)}
+                                onMouseEnter={(e) => enterDrag(e, row, ri)}
+                                onClick={(e) => toggleCtrl(e, row, ri)}
+                                onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
+                                onContextMenu={onRowContextMenu ? (e) => { e.preventDefault(); onRowContextMenu(e, row); } : undefined}
+                                style={{ cursor: (onRowClick || onRowDoubleClick || onRowContextMenu || selectable) ? "pointer" : "default", userSelect: "none" }}
+                            >
+                                {orderedColumns.map((col) => (
+                                    <td key={col.key} style={{ width: layout.widths[col.key] || col.width || undefined }}>
+                                        {col.render ? col.render(row) : defaultRender(col, row)}
+                                    </td>
+                                ))}
+                            </tr>
+                        );
+                    })}
                     </tbody>
                 </table>
             </div>
