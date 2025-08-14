@@ -30,6 +30,7 @@ export default function OrdersDetailModal({ index, onClose }) {
     const columns = React.useMemo(() => [
         { key: "index", header: "Index", width: 180, sortable: true },
         { key: "orderDate", header: "Data zamówienia", width: 200, sortable: true, render: r => formatDateTime(r.orderDate) },
+        { key: "comment", header: "Komentarz", width: 100, sortable: false },
         { key: "status", header: "Status", width: 180, sortable: true, render: r => statusBadge(r.status) },
         { key: "name", header: "Nazwa", width: 320, sortable: true },
         { key: "quantity", header: "Ilość", width: 120, sortable: true,
