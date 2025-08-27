@@ -1,12 +1,13 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../api/axios.js";
+import SubstituteList from "../substitute/SubstituteList";
 
 export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitted }) {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [detail, setDetail] = React.useState(null);
-    const [selected, setSelected] = React.useState(new Set());
+    const [selected, setSelected] = React.useState(new Map());
     const [comment, setComment] = React.useState("");
     const [submitting, setSubmitting] = React.useState(false);
 
@@ -20,7 +21,11 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
             .then(r => {
                 if (!active) return;
                 setDetail(r.data);
-                setSelected(new Set());
+                // Ustaw mapę domyślnie z wartościami it.materialId
+                const defaultMap = new Map(
+                    (r.data.items || []).map(it => [it.materialId, it.materialId])
+                );
+                setSelected(defaultMap);
             })
             .catch(e => {
                 if (!active) return;
@@ -41,21 +46,33 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
         const checked = e.target.checked;
         if (!detail?.items) return;
         if (checked) setSelected(new Set(detail.items.map(i => i.materialId)));
-        else setSelected(new Set());
+        else setSelected(new Map());
     }
-    function toggleOne(id, checked) {
+    function toggleOne(baseId, checked) {
         setSelected(prev => {
-            const next = new Set(prev);
-            if (checked) next.add(id); else next.delete(id);
+            const next = new Map(prev);
+            if (checked) {
+                // użyj poprzednio wybranego lub domyślnego indeksu
+                const current = prev.get(baseId) || baseId;
+                next.set(baseId, current);
+            } else {
+                next.delete(baseId);
+            }
             return next;
         });
     }
 
+    function handleSelect(baseId, selectedId) {
+        setSelected(prev => new Map(prev).set(baseId, selectedId));
+    }
+
+
     async function submit() {
         try {
             setSubmitting(true);
-            const materialIds = Array.from(selected);
+            const materialIds = Array.from(selected.values());
             await api.post("/orders", { batchId, materialIds, comment });
+            console.log("wysłano order")
             setSubmitting(false);
             onSubmitted?.();
             onClose?.();
@@ -128,19 +145,28 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
                                         {detail.items?.length ? (
                                             detail.items.map(it => {
                                                 const id = `mri-${it.materialId}`;
-                                                const checked = selected.has(it.materialId);
+                                                const isChecked = selected.has(it.materialId);
+
                                                 return (
-                                                    <div className="form-check" key={id}>
+                                                    <div className="form-check mb-2" key={id}>
                                                         <input
                                                             className="form-check-input"
                                                             type="checkbox"
                                                             id={id}
-                                                            checked={checked}
+                                                            checked={isChecked}
                                                             onChange={(e) => toggleOne(it.materialId, e.target.checked)}
                                                         />
-                                                        <label className="form-check-label" htmlFor={id}>
-                                                            <span className="fw-semibold">{it.materialId}</span> — {it.materialName}
-                                                            {typeof it.amount === "number" && <span className="text-secondary"> (x{it.amount})</span>}
+                                                        <label className="form-check-label w-100" htmlFor={id}>
+                                                            <div className="d-flex align-items-center justify-content-between">
+                                                                <div className="me-2 flex-grow-1">
+                                                                    <SubstituteList
+                                                                        baseMaterialId={it.materialId}
+                                                                        selectedIndex={selected.get(it.materialId) || it.materialId}
+                                                                        onSelect={handleSelect}
+                                                                    />
+                                                                </div>
+                                                                <span className="text-secondary">x{it.amount}</span>
+                                                            </div>
                                                         </label>
                                                     </div>
                                                 );
