@@ -1,5 +1,8 @@
-function SubstituteList({ baseMaterialId }) {
-    const [subs, setSubs] = React.useState([]);
+import React from "react";
+import { api } from "../../api/axios.js";
+
+function SubstituteList({ baseMaterialId, selectedIndex, onSelect }) {
+    const [options, setOptions] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
 
@@ -9,12 +12,14 @@ function SubstituteList({ baseMaterialId }) {
 
         setLoading(true);
         setError("");
-        setSubs([]);
+        setOptions([]);
 
         api.get(`/substitutes/${encodeURIComponent(baseMaterialId)}`, { signal: ctrl.signal })
             .then(res => {
                 if (!active) return;
-                setSubs(res.data || []);
+                const subs = res.data || [];
+                const all = [baseMaterialId, ...subs.map(s => s.substituteIndex)];
+                setOptions(all);
             })
             .catch(e => {
                 if (!active) return;
@@ -25,22 +30,22 @@ function SubstituteList({ baseMaterialId }) {
         return () => { active = false; ctrl.abort(); };
     }, [baseMaterialId]);
 
+    if (loading) return <div className="text-secondary small">Ładowanie zamienników…</div>;
+    if (error) return <div className="text-danger small">{error}</div>;
+
     return (
-        <div className="small">
-            <div className="fw-semibold">{baseMaterialId}</div>
-            {loading ? (
-                <span className="text-secondary ms-2">Ładowanie zamienników…</span>
-            ) : error ? (
-                <span className="text-danger ms-2">{error}</span>
-            ) : subs.length > 0 ? (
-                <ul className="ms-3 mb-0">
-                    {subs.map((s, i) => (
-                        <li key={i}>{s.substituteIndex}</li>
-                    ))}
-                </ul>
-            ) : (
-                <span className="text-secondary ms-2">Brak zamienników</span>
-            )}
-        </div>
+        <select
+            className="form-select form-select-sm"
+            value={selectedIndex}
+            onChange={(e) => onSelect(baseMaterialId, e.target.value)}
+        >
+            {options.map(opt => (
+                <option key={opt} value={opt}>
+                    {opt}
+                </option>
+            ))}
+        </select>
     );
 }
+
+export default SubstituteList;
