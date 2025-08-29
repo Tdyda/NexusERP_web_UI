@@ -3,6 +3,8 @@ import DataGrid from "../components/datagrid/DataGrid.jsx";
 import { api } from "../api/axios.js";
 import MaterialRequestOrderModal from "../components/modals/MaterialRequestOrderModal.jsx";
 import MaterialRequestBulkOrderModal from "../components/modals/MaterialRequestBulkOrderModal.jsx";
+import ManualOrderModal from "../components/modals/ManualOrderModal.jsx";
+
 
 
 const BASE = "/material-requests";
@@ -153,6 +155,10 @@ export default function MaterialRequests() {
         [refreshTick]
     );
 
+    const [manualOpen, setManualOpen] = React.useState(false);
+    const [flashMsg, setFlashMsg] = React.useState("");
+
+
     // ——— Single-order modal (dblclick) ———
     const [orderBatchId, setOrderBatchId] = React.useState(null);
     const openOrderModal = React.useCallback((row) => {
@@ -203,9 +209,21 @@ export default function MaterialRequests() {
                     >
                         <i className="bi bi-arrow-clockwise me-1"></i> Odśwież
                     </button>
-                    <button className="btn btn-sm btn-primary" onClick={() => console.log("create new MR")}>
+                    <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setManualOpen(true)}
+                    >
                         <i className="bi bi-plus-lg me-1"></i> Nowe
                     </button>
+
+                    {flashMsg && (
+                        <div className="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                            {flashMsg}
+                            <button type="button" className="btn-close" aria-label="Zamknij" onClick={() => setFlashMsg("")}></button>
+                        </div>
+                    )}
+
+
                 </div>
             </div>
 
@@ -244,6 +262,18 @@ export default function MaterialRequests() {
                     }}
                 />
             )}
+
+            {manualOpen && (
+                <ManualOrderModal
+                    onClose={() => setManualOpen(false)}
+                    onSubmitted={() => {
+                        setManualOpen(false);
+                        setFlashMsg("Zamówienie spoza listy zostało dodane.");
+                        setRefreshTick((t) => t + 1); // odświeżenie listy
+                    }}
+                />
+            )}
+
         </div>
     );
 }
