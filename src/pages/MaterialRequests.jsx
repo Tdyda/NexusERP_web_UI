@@ -209,9 +209,21 @@ export default function MaterialRequests() {
                     >
                         <i className="bi bi-arrow-clockwise me-1"></i> Odśwież
                     </button>
-                    <button className="btn btn-sm btn-primary" onClick={() => console.log("create new MR")}>
+                    <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setManualOpen(true)}
+                    >
                         <i className="bi bi-plus-lg me-1"></i> Nowe
                     </button>
+
+                    {flashMsg && (
+                        <div className="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                            {flashMsg}
+                            <button type="button" className="btn-close" aria-label="Zamknij" onClick={() => setFlashMsg("")}></button>
+                        </div>
+                    )}
+
+
                 </div>
             </div>
 
