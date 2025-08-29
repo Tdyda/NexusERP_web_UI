@@ -1,17 +1,18 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../api/axios.js";
+import { useAuth } from "../../auth/useAuth.js";
 
-/**
- * Modal: ręczne utworzenie zamówienia spoza listy.
- * Pola: index, comment (opcjonalny), quantity, locationCode, client, batchId
- */
 export default function ManualOrderModal({ onClose, onSubmitted }) {
+    // pobierz locationCode z kontekstu (czytanym z localStorage: app_auth.user.locationCode)
+    const { user } = useAuth();
+    const defaultLocationCode = user?.locationCode ?? "";
+
     const [form, setForm] = React.useState({
         index: "",
         comment: "",
         quantity: "",
-        locationCode: "",
+        locationCode: defaultLocationCode, // autouzupełnienie
         client: "",
         batchId: "",
     });
@@ -34,13 +35,11 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
                 const active = document.activeElement;
                 if (e.shiftKey) {
                     if (active === first || !modalRef.current.contains(active)) {
-                        last.focus();
-                        e.preventDefault();
+                        last.focus(); e.preventDefault();
                     }
                 } else {
                     if (active === last || !modalRef.current.contains(active)) {
-                        first.focus();
-                        e.preventDefault();
+                        first.focus(); e.preventDefault();
                     }
                 }
             }
@@ -65,7 +64,8 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
         const q = Number(form.quantity);
         if (!form.quantity?.toString().trim()) e.quantity = "Wymagane.";
         else if (!Number.isFinite(q) || q <= 0) e.quantity = "Ilość musi być > 0.";
-        if (!form.locationCode?.trim()) e.locationCode = "Wymagane.";
+        // jeśli nie mamy wartości z kontekstu/localStorage i nie wpisano ręcznie – wymagaj
+        if (!defaultLocationCode && !form.locationCode?.trim()) e.locationCode = "Wymagane.";
         if (!form.client?.trim()) e.client = "Wymagane.";
         if (!form.batchId?.trim()) e.batchId = "Wymagane.";
         return e;
@@ -82,7 +82,8 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
             index: form.index.trim(),
             comment: form.comment?.trim() || "",
             quantity: Number(form.quantity),
-            locationCode: form.locationCode.trim(),
+            // preferuj wartość z profilu (localStorage/kontekst), fallback do formularza
+            locationCode: (defaultLocationCode || form.locationCode || "").trim(),
             client: form.client.trim(),
             batchId: form.batchId.trim(),
         };
@@ -112,19 +113,13 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content" ref={modalRef} aria-labelledby="manualOrderTitle">
                         <div className="modal-header">
-                            <h5 className="modal-title" id="manualOrderTitle">
-                                Nowe zamówienie (spoza listy)
-                            </h5>
+                            <h5 className="modal-title" id="manualOrderTitle">Nowe zamówienie (spoza listy)</h5>
                             <button type="button" className="btn-close" onClick={onClose} aria-label="Zamknij"></button>
                         </div>
 
                         <form onSubmit={handleSubmit} noValidate>
                             <div className="modal-body">
-                                {errorMsg && (
-                                    <div className="alert alert-danger" role="alert">
-                                        {errorMsg}
-                                    </div>
-                                )}
+                                {errorMsg && <div className="alert alert-danger" role="alert">{errorMsg}</div>}
 
                                 <div className="row g-3">
                                     <div className="col-sm-6">
@@ -157,15 +152,19 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
                                     </div>
 
                                     <div className="col-sm-6">
-                                        <label className="form-label">Kod lokalizacji *</label>
+                                        <label className="form-label">Kod lokalizacji {defaultLocationCode ? "(z profilu)" : "*"} </label>
                                         <input
                                             type="text"
                                             name="locationCode"
                                             className={"form-control" + (errors.locationCode ? " is-invalid" : "")}
                                             value={form.locationCode}
                                             onChange={updateField}
-                                            required
+                                            // jeśli mamy wartość z localStorage/kontekstu – nie pozwól edytować
+                                            readOnly={!!defaultLocationCode}
+                                            disabled={!!defaultLocationCode}
+                                            required={!defaultLocationCode}
                                         />
+                                        {defaultLocationCode && <div className="form-text">Pobrano z danych użytkownika.</div>}
                                         {errors.locationCode && <div className="invalid-feedback">{errors.locationCode}</div>}
                                     </div>
 
