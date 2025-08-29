@@ -4,7 +4,6 @@ import { api } from "../../api/axios.js";
 import { useAuth } from "../../auth/useAuth.js";
 
 export default function ManualOrderModal({ onClose, onSubmitted }) {
-    // pobierz locationCode z kontekstu (czytanym z localStorage: app_auth.user.locationCode)
     const { user } = useAuth();
     const defaultLocationCode = user?.locationCode ?? "";
 
@@ -12,7 +11,7 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
         index: "",
         comment: "",
         quantity: "",
-        locationCode: defaultLocationCode, // autouzupełnienie
+        locationCode: defaultLocationCode,
         client: "",
         batchId: "",
     });
@@ -71,9 +70,33 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
         return e;
     }
 
+    function getServerErrorMessage(err) {
+        const d = err?.response?.data;
+
+        if (!d) return err?.message || "Nie udało się wysłać zamówień";
+        if (typeof d === "string") return d;
+
+        if (d?.errors) {
+            if (typeof d.errors === "string") return d.errors;
+            if (typeof d.errors === "object") {
+                const vals = Object.values(d.errors);
+                // spłaszcz ewentualne tablice
+                const flat = Array.isArray(vals) ? vals.flat() : vals;
+                const firstText = flat.find(v => typeof v === "string");
+                if (firstText) return firstText;
+            }
+        }
+
+        if (typeof d.message === "string" && d.message) return d.message;
+        if (typeof d.error === "string" && d.error && d.error !== "Internal Server Error") return d.error;
+
+        return err?.message || "Nie udało się wysłać zamówień";
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setErrorMsg("");
+
         const v = validate();
         setErrors(v);
         if (Object.keys(v).length > 0) return;
@@ -82,7 +105,6 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
             index: form.index.trim(),
             comment: form.comment?.trim() || "",
             quantity: Number(form.quantity),
-            // preferuj wartość z profilu (localStorage/kontekst), fallback do formularza
             locationCode: (defaultLocationCode || form.locationCode || "").trim(),
             client: form.client.trim(),
             batchId: form.batchId.trim(),
@@ -90,18 +112,15 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
 
         try {
             setSubmitting(true);
-            await api.post("/orders/create-manual", payload);
+            await api.post("/orders/create-manual", payload); // jeśli u Ciebie jest prefix /api, zmień na "/api/orders/create-manual"
             onSubmitted?.();
         } catch (err) {
-            const msg =
-                err?.response?.data?.message ||
-                err?.message ||
-                "Nie udało się utworzyć zamówienia.";
-            setErrorMsg(msg);
+            setErrorMsg(getServerErrorMessage(err)); // ← serwerowy komunikat, np. z d.errors.error
         } finally {
             setSubmitting(false);
         }
     }
+
 
     return createPortal(
         <>
