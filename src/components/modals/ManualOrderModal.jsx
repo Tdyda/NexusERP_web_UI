@@ -89,7 +89,7 @@ export default function ManualOrderModal({ onClose, onSubmitted }) {
 
         try {
             setSubmitting(true);
-            await api.post("/api/orders/create-manual", payload);
+            await api.post("/orders/create-manual", payload);
             onSubmitted?.();
         } catch (err) {
             const msg =
