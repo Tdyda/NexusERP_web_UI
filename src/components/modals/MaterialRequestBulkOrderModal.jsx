@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../api/axios.js";
 import SubstituteList from "../substitute/SubstituteList";
+import { useAuth } from "../../auth/useAuth.js";
 
 export default function MaterialRequestBulkOrderModal({ batchIds, onClose, onSubmitted }) {
     const [loading, setLoading] = React.useState(true);
@@ -13,6 +14,22 @@ export default function MaterialRequestBulkOrderModal({ batchIds, onClose, onSub
     const [globalSelection, setGlobalSelection] = React.useState(new Map());
     const [comment, setComment] = React.useState("");
     const [submitting, setSubmitting] = React.useState(false);
+    const { user } = useAuth();
+
+    const locationCode = React.useMemo(() => {
+        // 1) preferuj z kontekstu
+        if (user?.locationCode) return user.locationCode;
+
+        // 2) fallback: localStorage -> app_auth.user.locationCode
+        try {
+            const raw = localStorage.getItem("app_auth");
+            if (!raw) return "";
+            const parsed = JSON.parse(raw);
+            return parsed?.user?.locationCode ?? "";
+        } catch {
+            return "";
+        }
+    }, [user]);
 
     React.useEffect(() => {
         let active = true;
@@ -76,27 +93,56 @@ export default function MaterialRequestBulkOrderModal({ batchIds, onClose, onSub
         //    to pozostaje zaznaczona – nic nie robimy z chosen.
     }
 
+    function getServerErrorMessage(err) {
+        const d = err?.response?.data;
+
+        if (!d) return err?.message || "Nie udało się wysłać zamówień";
+        if (typeof d === "string") return d;
+
+        if (d?.errors) {
+            if (typeof d.errors === "string") return d.errors;
+            if (typeof d.errors === "object") {
+                const vals = Object.values(d.errors);
+                // spłaszcz ewentualne tablice
+                const flat = Array.isArray(vals) ? vals.flat() : vals;
+                const firstText = flat.find(v => typeof v === "string");
+                if (firstText) return firstText;
+            }
+        }
+
+        if (typeof d.message === "string" && d.message) return d.message;
+        if (typeof d.error === "string" && d.error && d.error !== "Internal Server Error") return d.error;
+
+        return err?.message || "Nie udało się wysłać zamówień";
+    }
+
     async function submit() {
         try {
             setSubmitting(true);
+            setError("");
+
             const payloads = details.map(d => {
                 const inner = chosen.get(d.batchId) || new Map();
-                // budujemy listę materialIds mapując KAŻDY wybrany baseId przez globalSelection
                 const materialIds = Array.from(inner.keys()).map(baseId => globalSelection.get(baseId) || baseId);
-                return { batchId: d.batchId, materialIds, comment };
+                return { batchId: d.batchId, materialIds, comment, locationCode }; // locationCode dodany wcześniej
             }).filter(p => p.materialIds.length > 0);
 
-            if (payloads.length === 0) { setError("Nie wybrano żadnych materiałów."); setSubmitting(false); return; }
+            if (payloads.length === 0) {
+                setError("Nie wybrano żadnych materiałów.");
+                return;
+            }
 
             await Promise.all(payloads.map(p => api.post("/orders", p)));
-            setSubmitting(false);
+
             onSubmitted?.(payloads.length);
             onClose?.();
         } catch (e) {
+            setError(getServerErrorMessage(e)); // ← wyświetli komunikat z serwera
+        } finally {
             setSubmitting(false);
-            setError(e?.response?.data?.message || e.message || "Nie udało się wysłać zamówień");
         }
     }
+
 
     return createPortal(
         <>
