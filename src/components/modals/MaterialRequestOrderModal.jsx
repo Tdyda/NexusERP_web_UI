@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../api/axios.js";
 import SubstituteList from "../substitute/SubstituteList";
+import { useAuth } from "../../auth/useAuth.js";
 
 export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitted }) {
     const [loading, setLoading] = React.useState(true);
@@ -10,6 +11,22 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
     const [selected, setSelected] = React.useState(new Map());
     const [comment, setComment] = React.useState("");
     const [submitting, setSubmitting] = React.useState(false);
+    const { user } = useAuth();
+
+    const locationCode = React.useMemo(() => {
+        // 1) preferuj z kontekstu
+        if (user?.locationCode) return user.locationCode;
+
+        // 2) fallback: localStorage -> app_auth.user.locationCode
+        try {
+            const raw = localStorage.getItem("app_auth");
+            if (!raw) return "";
+            const parsed = JSON.parse(raw);
+            return parsed?.user?.locationCode ?? "";
+        } catch {
+            return "";
+        }
+    }, [user]);
 
     React.useEffect(() => {
         let active = true;
@@ -97,7 +114,7 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
             setError("");
 
             const materialIds = Array.from(selected.values());
-            await api.post("/orders", { batchId, materialIds, comment });
+            await api.post("/orders", { batchId, materialIds, comment, locationCode });
 
             console.log("wysłano order");
             onSubmitted?.();
