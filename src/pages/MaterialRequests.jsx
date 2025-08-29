@@ -262,6 +262,18 @@ export default function MaterialRequests() {
                     }}
                 />
             )}
+
+            {manualOpen && (
+                <ManualOrderModal
+                    onClose={() => setManualOpen(false)}
+                    onSubmitted={() => {
+                        setManualOpen(false);
+                        setFlashMsg("Zamówienie spoza listy zostało dodane.");
+                        setRefreshTick((t) => t + 1); // odświeżenie listy
+                    }}
+                />
+            )}
+
         </div>
     );
 }
