@@ -3,6 +3,8 @@ import DataGrid from "../components/datagrid/DataGrid.jsx";
 import { api } from "../api/axios.js";
 import MaterialRequestOrderModal from "../components/modals/MaterialRequestOrderModal.jsx";
 import MaterialRequestBulkOrderModal from "../components/modals/MaterialRequestBulkOrderModal.jsx";
+import ManualOrderModal from "../components/modals/ManualOrderModal.jsx";
+
 
 
 const BASE = "/material-requests";
@@ -152,6 +154,10 @@ export default function MaterialRequests() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [refreshTick]
     );
+
+    const [manualOpen, setManualOpen] = React.useState(false);
+    const [flashMsg, setFlashMsg] = React.useState("");
+
 
     // ——— Single-order modal (dblclick) ———
     const [orderBatchId, setOrderBatchId] = React.useState(null);
