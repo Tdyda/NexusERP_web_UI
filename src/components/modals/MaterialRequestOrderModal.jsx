@@ -66,21 +66,49 @@ export default function MaterialRequestOrderModal({ batchId, onClose, onSubmitte
         setSelected(prev => new Map(prev).set(baseId, selectedId));
     }
 
+    function getServerErrorMessage(err) {
+        const d = err?.response?.data;
+
+        if (!d) return err?.message || "Nie udało się wysłać zamówienia";
+        if (typeof d === "string") return d;
+
+        if (d?.errors) {
+            if (typeof d.errors === "string") return d.errors;
+            if (typeof d.errors === "object") {
+                // weź pierwszy tekst z obiektu errors (obsługuje też tablice)
+                const vals = Object.values(d.errors).flat
+                    ? Object.values(d.errors).flat()
+                    : Object.values(d.errors);
+                const firstText = vals.find(v => typeof v === "string");
+                if (firstText) return firstText;
+            }
+        }
+
+        if (typeof d.message === "string" && d.message) return d.message;
+        if (typeof d.error === "string" && d.error && d.error !== "Internal Server Error") return d.error;
+
+        return err?.message || "Nie udało się wysłać zamówienia";
+    }
+
 
     async function submit() {
         try {
             setSubmitting(true);
+            setError("");
+
             const materialIds = Array.from(selected.values());
             await api.post("/orders", { batchId, materialIds, comment });
-            console.log("wysłano order")
-            setSubmitting(false);
+
+            console.log("wysłano order");
             onSubmitted?.();
             onClose?.();
         } catch (e) {
+            setError(getServerErrorMessage(e));
+        } finally {
             setSubmitting(false);
-            setError(e?.response?.data?.message || e.message || "Nie udało się wysłać zamówienia");
         }
     }
+
 
     return createPortal(
         <>
