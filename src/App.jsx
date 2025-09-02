@@ -11,6 +11,7 @@ import { setAuthHelpers } from "./api/authBridge.js";
 import AppLayout from "./components/AppLayout.jsx";
 import OrdersMex from "./pages/OrdersMex.jsx";
 import MyOrders from "./pages/MyOrders.jsx";
+import OrdersHistory from "./pages/OrderHistory.jsx";
 
 export default function App() {
     const { logout, setTokens, accessToken, refreshToken } = useAuth();
@@ -45,6 +46,7 @@ export default function App() {
                     {/* ⬇️ Wymaga przynajmniej jednej z ról: ORDERS_MEX LUB admin */}
                     <Route element={<ProtectedRoute roles={['ROLE_ORDERS_MEX','ROLE_ADMIN']} />}>
                         <Route path="/orders-mex" element={<OrdersMex />} />
+                        <Route path="/orders-history-completation" element={<OrdersHistory />} />
                     </Route>
                 </Route>
             </Route>
