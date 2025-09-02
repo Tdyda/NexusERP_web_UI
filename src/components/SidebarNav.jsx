@@ -15,6 +15,7 @@ export default function SidebarNav({ onNavigate }) {
             { to: "/material-requests", label: "Zamówienia - kompletacja", icon: "bi-box", roles: ["ROLE_ORDER_REQUESTS", "ROLE_ADMIN"] },
             { to: "/orders-mex", label: "Zamówienia - mecalux", icon: "bi-truck", roles: ["ROLE_ORDERS_MEX", "ROLE_ADMIN"] },
             { to: "/my-orders", label: "Moje zamówienia", icon: "bi-list-check", roles: ["ROLE_ORDER_REQUESTS", "ROLE_ADMIN"] },
+            { to: "/orders-history-completation", label: "Historia zamówień - kompletacja", icon: "bi-clock-history", roles: ["ROLE_ORDERS_MEX", "ROLE_ADMIN"] },
         ],
         []
     );
