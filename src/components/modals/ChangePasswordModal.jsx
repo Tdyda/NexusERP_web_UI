@@ -9,9 +9,9 @@ import { api } from "../../api/axios.js";
  */
 export default function ChangePasswordModal({ onClose, onSubmitted }) {
     const [form, setForm] = React.useState({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+        oldP: "",
+        newP: "",
+        confirmP: "",
     });
     const [errors, setErrors] = React.useState({});
     const [submitting, setSubmitting] = React.useState(false);
@@ -70,11 +70,11 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
     function validate() {
         const e = {};
         if (!username) e.username = "Brak nazwy użytkownika (localStorage).";
-        if (!form.oldPassword?.trim()) e.oldPassword = "Wymagane.";
-        if (!form.newPassword?.trim()) e.newPassword = "Wymagane.";
-        if (!form.confirmPassword?.trim()) e.confirmPassword = "Wymagane.";
-        if (form.newPassword && form.confirmPassword && form.newPassword !== form.confirmPassword) {
-            e.confirmPassword = "Hasła muszą być takie same.";
+        if (!form.oldP?.trim()) e.oldP = "Wymagane.";
+        if (!form.newP?.trim()) e.newP = "Wymagane.";
+        if (!form.confirmP?.trim()) e.confirmP = "Wymagane.";
+        if (form.newP && form.confirmP && form.newP !== form.confirmP) {
+            e.confirmP = "Hasła muszą być takie same.";
         }
         return e;
     }
@@ -106,8 +106,8 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
 
         const payload = {
             username,
-            oldPassword: form.oldPassword,
-            newPassword: form.newPassword,
+            oldPassword: form.oldP,
+            newPassword: form.newP,
         };
 
         try {
@@ -153,42 +153,42 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
                                     <label className="form-label">Obecne hasło *</label>
                                     <input
                                         type="password"
-                                        name="oldPassword"
-                                        className={"form-control" + (errors.oldPassword ? " is-invalid" : "")}
-                                        value={form.oldPassword}
+                                        name="oldP"
+                                        className={"form-control" + (errors.oldP ? " is-invalid" : "")}
+                                        value={form.oldP}
                                         onChange={updateField}
                                         required
                                         autoComplete="current-password"
                                     />
-                                    {errors.oldPassword && <div className="invalid-feedback">{errors.oldPassword}</div>}
+                                    {errors.oldP && <div className="invalid-feedback">{errors.oldP}</div>}
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">Nowe hasło *</label>
                                     <input
                                         type="password"
-                                        name="newPassword"
-                                        className={"form-control" + (errors.newPassword ? " is-invalid" : "")}
-                                        value={form.newPassword}
+                                        name="newP"
+                                        className={"form-control" + (errors.newP ? " is-invalid" : "")}
+                                        value={form.newP}
                                         onChange={updateField}
                                         required
                                         autoComplete="new-password"
                                     />
-                                    {errors.newPassword && <div className="invalid-feedback">{errors.newPassword}</div>}
+                                    {errors.newP && <div className="invalid-feedback">{errors.newP}</div>}
                                 </div>
 
                                 <div className="mb-1">
                                     <label className="form-label">Potwierdź hasło *</label>
                                     <input
                                         type="password"
-                                        name="confirmPassword"
-                                        className={"form-control" + (errors.confirmPassword ? " is-invalid" : "")}
-                                        value={form.confirmPassword}
+                                        name="confirmP"
+                                        className={"form-control" + (errors.confirmP ? " is-invalid" : "")}
+                                        value={form.confirmP}
                                         onChange={updateField}
                                         required
                                         autoComplete="new-password"
                                     />
-                                    {errors.confirmPassword && <div className="invalid-feedback">{errors.confirmPassword}</div>}
+                                    {errors.confirmP && <div className="invalid-feedback">{errors.confirmP}</div>}
                                 </div>
                             </div>
 
