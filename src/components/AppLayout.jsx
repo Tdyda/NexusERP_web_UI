@@ -2,9 +2,12 @@ import React from "react";
 import { Outlet, Link } from "react-router-dom";
 import SidebarNav from "./SidebarNav.jsx";
 import { useAuth } from "../auth/useAuth.js";
+import ChangePasswordModal from "./modals/ChangePasswordModal.jsx";
 
 export default function AppLayout() {
     const { user, logout } = useAuth();
+    const [changePwOpen, setChangePwOpen] = React.useState(false);
+
 
     function closeOffcanvas() {
         const offcanvasEl = document.getElementById("appSidebar");
@@ -43,6 +46,11 @@ export default function AppLayout() {
                             <ul className="dropdown-menu dropdown-menu-end">
                                 <li><button className="dropdown-item" type="button">Profil</button></li>
                                 <li><hr className="dropdown-divider" /></li>
+                                <li>
+                                    <button className="dropdown-item" onClick={() => setChangePwOpen(true)}>
+                                        <i className="bi bi-key me-2" /> Zmień hasło
+                                    </button>
+                                </li>
                                 <li><button className="dropdown-item text-danger" onClick={logout}>Wyloguj</button></li>
                             </ul>
                         </div>
@@ -80,6 +88,16 @@ export default function AppLayout() {
                     <SidebarNav onNavigate={closeOffcanvas} />
                 </div>
             </div>
+
+            {changePwOpen && (
+                <ChangePasswordModal
+                    onClose={() => setChangePwOpen(false)}
+                    onSubmitted={() => {
+                        setChangePwOpen(false);
+                    }}
+                />
+            )}
+
         </div>
     );
 }
