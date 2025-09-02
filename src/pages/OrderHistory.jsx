@@ -4,7 +4,6 @@ import DataGrid from "../components/datagrid/DataGrid.jsx";
 import { api } from "../api/axios.js";
 
 export default function OrdersHistory() {
-    // Kolumny z mapowaniem na pola z API
     const columns = React.useMemo(
         () => [
             { key: "index", header: "Indeks", width: 180, sortable: true, filter: { type: "text", placeholder: "Indeks" } },
@@ -14,24 +13,24 @@ export default function OrdersHistory() {
                 header: "Data zamówienia",
                 width: 200,
                 sortable: true,
-                accessor: (r) => r.orderDateMin,
-                render: (r) => formatDateTime(r.orderDateMin),
+                accessor: (r) => r.orderDate,
+                render: (r) => formatDateTime(r.orderDate),
             },
             {
                 key: "quantity",
                 header: "Ilość",
                 width: 120,
                 sortable: true,
-                accessor: (r) => r.quantitySum,
+                accessor: (r) => r.quantity,
                 render: (r) =>
-                    typeof r.quantitySum === "number" ? r.quantitySum.toLocaleString() : r.quantitySum,
+                    typeof r.quantity === "number" ? r.quantity.toLocaleString() : r.quantity,
             },
             {
                 key: "prodLine",
                 header: "Jednostka",
                 width: 160,
                 sortable: true,
-                accessor: (r) => r.prodLineMax,
+                accessor: (r) => r.prodLine,
             },
         ],
         []
@@ -39,26 +38,24 @@ export default function OrdersHistory() {
 
     const [refreshTick, setRefreshTick] = React.useState(0);
 
-    // Mapowanie kluczy sortowania z DataGrid → API
     const SORT_MAP = {
         index: "index",
         name: "name",
-        orderDate: "orderDateMin",
-        quantity: "quantitySum",
-        prodLine: "prodLineMax",
+        orderDate: "orderDate",
+        quantity: "quantity",
+        prodLine: "prodLine",
     };
 
-    // Server-side pagination
     const fetchData = React.useCallback(
         async ({ page, pageSize, sort, /* filters, */ signal }) => {
             const params = {
-                page: Math.max(0, (page ?? 1) - 1), // DataGrid ma stronę od 1
+                page: Math.max(0, (page ?? 1) - 1),
                 size: pageSize ?? 15,
             };
 
             if (sort?.key && sort?.dir) {
                 const apiKey = SORT_MAP[sort.key] ?? sort.key;
-                params.sort = `${apiKey},${sort.dir}`; // np. name,asc
+                params.sort = `${apiKey},${sort.dir}`;
             }
 
             const res = await api.get("/orders/history", { params, signal });
@@ -66,7 +63,6 @@ export default function OrdersHistory() {
             const content = Array.isArray(data.content) ? data.content : [];
             const total = Number.isFinite(data.totalElements) ? data.totalElements : content.length;
 
-            // Zwracamy { rows, total } zgodnie z kontraktem DataGrid
             return { rows: content, total };
         },
         [refreshTick]
@@ -106,7 +102,6 @@ export default function OrdersHistory() {
     );
 }
 
-/* helpers */
 function formatDateTime(iso) {
     if (!iso) return "—";
     const t = Date.parse(iso);
