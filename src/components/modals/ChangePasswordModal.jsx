@@ -69,7 +69,6 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
 
     function validate() {
         const e = {};
-        if (!username) e.username = "Brak nazwy użytkownika (localStorage).";
         if (!form.oldP?.trim()) e.oldP = "Wymagane.";
         if (!form.newP?.trim()) e.newP = "Wymagane.";
         if (!form.confirmP?.trim()) e.confirmP = "Wymagane.";
@@ -105,9 +104,8 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
         if (Object.keys(v).length > 0) return;
 
         const payload = {
-            username,
-            oldPassword: form.oldP,
-            newPassword: form.newP,
+            oldP: form.oldP,
+            newP: form.newP,
         };
 
         try {
@@ -136,18 +134,6 @@ export default function ChangePasswordModal({ onClose, onSubmitted }) {
                         <form onSubmit={handleSubmit} noValidate>
                             <div className="modal-body">
                                 {errorMsg && <div className="alert alert-danger" role="alert">{errorMsg}</div>}
-
-                                <div className="mb-3">
-                                    <label className="form-label">Użytkownik</label>
-                                    <input
-                                        type="text"
-                                        className={"form-control" + (errors.username ? " is-invalid" : "")}
-                                        value={username}
-                                        readOnly
-                                        disabled
-                                    />
-                                    {errors.username && <div className="invalid-feedback">{errors.username}</div>}
-                                </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">Obecne hasło *</label>
