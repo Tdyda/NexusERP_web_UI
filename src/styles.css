@@ -37,3 +37,8 @@
 .metric-card .metric-label {
     color: #6c757d;
 }
+
+.text-bg-orange {
+    background-color: orange !important;
+    color: white !important;
+}

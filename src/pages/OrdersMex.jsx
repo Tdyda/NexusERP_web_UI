@@ -15,7 +15,7 @@ export default function OrdersMex() {
     const didInit = React.useRef(false);
     const [ctx, setCtx] = React.useState({ open: false, x: 0, y: 0, row: null });
 
-    const STATUSES = ["Ukończone", "Anulowane"];
+    const STATUSES = ["Ukończone", "Przekazane", "Anulowane"];
 
     const columns = React.useMemo(() => [
         { key: "index", header: "Index", width: 180, sortable: true },
@@ -231,6 +231,7 @@ function statusBadge(status) {
     let cls = "badge text-bg-secondary";
     if (s.includes("new") || s.includes("oczek")) cls = "badge text-bg-warning text-dark";
     if (s.includes("progress") || s.includes("w toku")) cls = "badge text-bg-info text-dark";
+    if (s.includes("przekazane")) cls = "badge text-bg-orange";
     if (s.includes("done") || s.includes("complete") || s.includes("zako")) cls = "badge text-bg-success";
     if (s.includes("cancel")) cls = "badge text-bg-danger";
     return <span className={cls}>{status || "—"}</span>;
