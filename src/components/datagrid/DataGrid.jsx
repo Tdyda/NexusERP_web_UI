@@ -3,6 +3,7 @@ import "./DataGrid.css";
 import { useLocalStorage } from "../../utils/useLocalStorage.js";
 import Toolbar from "./Toolbar.jsx";
 import HeaderCell from "./HeaderCell.jsx";
+import {api} from "../../api/axios.js";
 
 /**
  * Kolumny:
@@ -66,6 +67,12 @@ export default function DataGrid({
     const [error, setError] = React.useState("");
 
     const debouncedFilters = useDebounced(filters, 300);
+
+    const LONG_PRESS_MS = 500;       // czas przytrzymania
+    const MOVE_TOL = 10;             // tolerancja ruchu (px)
+
+    const lpTimerRef = React.useRef(null);
+    const lpStartPosRef = React.useRef({ x: 0, y: 0 });
 
     React.useEffect(() => {
         let active = true;
@@ -208,6 +215,40 @@ export default function DataGrid({
     }
     function onHeaderDragEnd() { setDragKey(null); }
 
+    function lpClearTimer() {
+        if (lpTimerRef.current) {
+            clearTimeout(lpTimerRef.current);
+            lpTimerRef.current = null;
+        }
+    }
+    function handleTouchStartRow(e, row) {
+        if (!onRowContextMenu) return;
+        const t = e.touches?.[0];
+        lpStartPosRef.current = { x: t?.clientX ?? 0, y: t?.clientY ?? 0 };
+        lpClearTimer();
+        lpTimerRef.current = setTimeout(() => {
+            const { x, y } = lpStartPosRef.current;
+            // syntetyczny "event" z pozycją kliknięcia
+            onRowContextMenu({ clientX: x, clientY: y, preventDefault() {} }, row);
+            lpClearTimer();
+        }, LONG_PRESS_MS);
+    }
+    function handleTouchMoveRow(e) {
+        if (!lpTimerRef.current) return;
+        const t = e.touches?.[0];
+        if (!t) return;
+        const dx = Math.abs(t.clientX - lpStartPosRef.current.x);
+        const dy = Math.abs(t.clientY - lpStartPosRef.current.y);
+        if (dx > MOVE_TOL || dy > MOVE_TOL) {
+            // traktuj jako scroll/drag – anuluj long-press
+            lpClearTimer();
+        }
+    }
+    function handleTouchEndRow() {
+        // puszczenie palca przed progiem – anuluj
+        lpClearTimer();
+    }
+
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     return (
@@ -275,6 +316,12 @@ export default function DataGrid({
                                 onClick={(e) => toggleCtrl(e, row, ri)}
                                 onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
                                 onContextMenu={onRowContextMenu ? (e) => { e.preventDefault(); onRowContextMenu(e, row); } : undefined}
+
+                                onTouchStart={onRowContextMenu ? (e) => handleTouchStartRow(e, row) : undefined}
+                                onTouchMove={onRowContextMenu ? handleTouchMoveRow : undefined}
+                                onTouchEnd={onRowContextMenu ? handleTouchEndRow : undefined}
+                                onTouchCancel={onRowContextMenu ? handleTouchEndRow : undefined}
+
                                 style={{ cursor: (onRowClick || onRowDoubleClick || onRowContextMenu || selectable) ? "pointer" : "default", userSelect: "none" }}
                             >
                                 {orderedColumns.map((col) => (
