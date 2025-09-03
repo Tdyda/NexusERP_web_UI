@@ -186,6 +186,8 @@ function statusBadge(status) {
     let cls = "badge text-bg-secondary";
     if (s.includes("zako") || s.includes("done") || s.includes("complete") || s.includes("ukoń"))
         cls = "badge text-bg-success";
+    if (s.includes("Zrealizowane przez magazyn"))
+        cls = "badge text-bg-warning text-dark";
     if (s.includes("cancel") || s.includes("odrz") || s.includes("anul"))
         cls = "badge text-bg-danger";
     return <span className={cls}>{status || "—"}</span>;
