@@ -52,6 +52,11 @@ export default function OrdersMex() {
         },
     ], []);
 
+    React.useEffect(() => {
+        if (ctx.open) document.body.classList.add("body-no-select");
+        else document.body.classList.remove("body-no-select");
+        return () => document.body.classList.remove("body-no-select");
+    }, [ctx.open]);
 
     async function refresh() {
         setLastError("");

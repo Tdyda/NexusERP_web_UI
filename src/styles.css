@@ -42,3 +42,13 @@
     background-color: orange !important;
     color: white !important;
 }
+.body-no-select,
+.body-no-select * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.data-grid-row {
+    -webkit-tap-highlight-color: transparent;
+}

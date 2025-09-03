@@ -3,6 +3,7 @@ import "./DataGrid.css";
 import { useLocalStorage } from "../../utils/useLocalStorage.js";
 import Toolbar from "./Toolbar.jsx";
 import HeaderCell from "./HeaderCell.jsx";
+import {api} from "../../api/axios.js";
 
 /**
  * Kolumny:
@@ -66,6 +67,14 @@ export default function DataGrid({
     const [error, setError] = React.useState("");
 
     const debouncedFilters = useDebounced(filters, 300);
+
+    const LONG_PRESS_MS = 500;       // czas przytrzymania
+    const MOVE_TOL = 10;             // tolerancja ruchu (px)
+
+    const suppressClicksUntilRef = React.useRef(0);
+    const lpTimerRef = React.useRef(null);
+    const lpStartPosRef = React.useRef({ x: 0, y: 0 });
+    const lpFiredRef = React.useRef(false);
 
     React.useEffect(() => {
         let active = true;
@@ -208,6 +217,61 @@ export default function DataGrid({
     }
     function onHeaderDragEnd() { setDragKey(null); }
 
+    function clearSelection() {
+            const sel = window.getSelection?.();
+            sel?.removeAllRanges?.();
+            // na iOS bywa potrzebne:
+            document.activeElement?.blur?.();
+    }
+
+    function lpClearTimer() {
+        if (lpTimerRef.current) {
+            clearTimeout(lpTimerRef.current);
+            lpTimerRef.current = null;
+        }
+    }
+    function handleTouchStartRow(e, row) {
+        if (!onRowContextMenu) return;
+        const t = e.touches?.[0];
+        lpStartPosRef.current = { x: t?.clientX ?? 0, y: t?.clientY ?? 0 };
+        lpClearTimer();
+        lpTimerRef.current = setTimeout(() => {
+            const { x, y } = lpStartPosRef.current;
+            // syntetyczny "event" z pozycją kliknięcia
+            onRowContextMenu({ clientX: x, clientY: y, preventDefault() {} }, row);
+            lpClearTimer();
+
+            lpTimerRef.current = setTimeout(() => {
+                const { x, y } = lpStartPosRef.current;
+                onRowContextMenu({ clientX: x, clientY: y, preventDefault() {} }, row);
+                // 🛡️ zablokuj dalsze kliki przez chwilę
+                suppressClicksUntilRef.current = Date.now() + 500; // 0.5s
+                clearSelection();
+                lpFiredRef.current = true;
+                lpClearTimer();
+            }, LONG_PRESS_MS);
+        }, LONG_PRESS_MS);
+    }
+    function handleTouchMoveRow(e) {
+        if (!lpTimerRef.current) return;
+        const t = e.touches?.[0];
+        if (!t) return;
+        const dx = Math.abs(t.clientX - lpStartPosRef.current.x);
+        const dy = Math.abs(t.clientY - lpStartPosRef.current.y);
+        if (dx > MOVE_TOL || dy > MOVE_TOL) {
+            // traktuj jako scroll/drag – anuluj long-press
+            lpClearTimer();
+        }
+    }
+    function handleTouchEndRow(e) {
+        if (lpFiredRef.current) {
+            e.preventDefault();         // w większości mobile to kasuje późniejszy click
+            suppressClicksUntilRef.current = Date.now() + 400;
+            lpFiredRef.current = false;
+        }
+        lpClearTimer();
+    }
+
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     return (
@@ -270,11 +334,30 @@ export default function DataGrid({
                             <tr
                                 key={key}
                                 className={extraClass}
-                                onMouseDown={(e) => startDrag(e, row, ri)}
-                                onMouseEnter={(e) => enterDrag(e, row, ri)}
-                                onClick={(e) => toggleCtrl(e, row, ri)}
-                                onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
+                                onMouseDown={(e) => {
+                                    if (Date.now() < suppressClicksUntilRef.current) return;
+                                    startDrag(e, row, ri);
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (Date.now() < suppressClicksUntilRef.current) return;
+                                    enterDrag(e, row, ri);
+                                }}
+                                onClick={(e) => {
+                                    if (Date.now() < suppressClicksUntilRef.current) { e.preventDefault(); return; }
+                                    toggleCtrl(e, row, ri);
+                                }}
+                                onDoubleClick={onRowDoubleClick ? () => {
+                                    if (Date.now() < suppressClicksUntilRef.current) return;
+                                    onRowDoubleClick(row);
+                                } : undefined}
+
                                 onContextMenu={onRowContextMenu ? (e) => { e.preventDefault(); onRowContextMenu(e, row); } : undefined}
+
+                                onTouchStart={onRowContextMenu ? (e) => handleTouchStartRow(e, row) : undefined}
+                                onTouchMove={onRowContextMenu ? handleTouchMoveRow : undefined}
+                                onTouchEnd={onRowContextMenu ? handleTouchEndRow : undefined}
+                                onTouchCancel={onRowContextMenu ? handleTouchEndRow : undefined}
+
                                 style={{ cursor: (onRowClick || onRowDoubleClick || onRowContextMenu || selectable) ? "pointer" : "default", userSelect: "none" }}
                             >
                                 {orderedColumns.map((col) => (
